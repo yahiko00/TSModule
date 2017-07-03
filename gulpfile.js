@@ -15,6 +15,7 @@ const runSequence = require("run-sequence");
 const tape = require("gulp-tape");
 const through = require("through2");
 const fs = require("fs");
+const filter = require("gulp-filter");
 
 const debug = settings.debug === true;
 
@@ -54,10 +55,14 @@ gulp.task("compile", () => {
     }
 
     let tsProject = ts.createProject(config);
+    const f = filter(["*.js"], { "restore": true });
+
     return tsProject.src()
         .pipe(gulpif(debug, sourcemaps.init()))
-        .pipe(tsProject()).js
+        .pipe(tsProject())
+        .pipe(f)
         .pipe(gulpif(debug, sourcemaps.write()))
+        .pipe(f.restore)
         .pipe(gulp.dest(dest))
         .on("error", gutil.log);
 });
