@@ -1,1 +1,0 @@
-"use strict";function random(r,o){if(r>o)return 0;var t=o-r+1;return Math.floor(t*Math.random()+r)}module.exports=random;
