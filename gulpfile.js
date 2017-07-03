@@ -9,7 +9,6 @@ const ts = require("gulp-typescript");
 const uglify = require("gulp-uglify");
 const sourcemaps = require("gulp-sourcemaps");
 const gutil = require("gulp-util");
-const gulpif = require("gulp-if");
 const changed = require("gulp-changed");
 const runSequence = require("run-sequence");
 const tape = require("gulp-tape");
@@ -17,6 +16,8 @@ const through = require("through2");
 const fs = require("fs");
 const merge = require("merge2");
 const rename = require("gulp-rename");
+const exorcist = require("exorcist");
+const transform = require('vinyl-transform');
 
 const debug = settings.debug === true;
 
@@ -29,6 +30,7 @@ gulp.task("clean", () => {
     if (debug) { files.push(settings.paths.debug + "*"); }
     else {
         files.push(settings.paths.release + mainFilename);
+        files.push(settings.paths.release + mainFilename + ".map");
         files.push(settings.paths.release + "index.d.ts");
     }
 
@@ -40,6 +42,7 @@ gulp.task("clean:all", () => {
     let files = ["./.cache.json", "./*.log"];
     files.push(settings.paths.debug + "*");
     files.push(settings.paths.release + mainFilename);
+    files.push(settings.paths.release + mainFilename + ".map");
     files.push(settings.paths.release + "index.d.ts");
 
     return del(files);
@@ -61,12 +64,12 @@ gulp.task("compile", () => {
 
     const tsProject = ts.createProject(config);
     const tsResult = tsProject.src()
-        .pipe(gulpif(debug, sourcemaps.init()))
+        .pipe(sourcemaps.init())
         .pipe(tsProject());
 
     return merge([
         tsResult.js
-            .pipe(gulpif(debug, sourcemaps.write()))
+            .pipe(sourcemaps.write())
             .pipe(gulp.dest(dest)),
         tsResult.dts
             .pipe(rename("index.d.ts"))
@@ -82,9 +85,10 @@ gulp.task("minify", ["compile"], () => {
     else { dest = settings.paths.release; }
 
     return gulp.src([dest + "*.js", "!" + dest + "gulpfile.js"])
-        .pipe(gulpif(debug, sourcemaps.init({ loadMaps: true })))
+        .pipe(sourcemaps.init({ loadMaps: true }))
         .pipe(uglify())
-        .pipe(gulpif(debug, sourcemaps.write()))
+        .pipe(sourcemaps.write())
+        .pipe(transform(function () { return exorcist(dest + mainFilename + ".map"); }))
         .pipe(gulp.dest(dest))
         .on("error", gutil.log);
 });
