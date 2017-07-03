@@ -1,4 +1,5 @@
 *.map
+!module.js.map
 *.log
 debug/
 dist/
